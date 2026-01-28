@@ -1,16 +1,15 @@
 pipeline {
     agent any
-
+    
     tools {
-        maven 'Maven' // Jenkins → Tools → Maven name
+        maven 'Maven'
     }
-
+    
     options {
         skipDefaultCheckout()
     }
-
+    
     stages {
-
         stage('Checkout Source') {
             steps {
                 git url: 'git@github.com:VAISAALI18/devops-app.git',
@@ -18,42 +17,40 @@ pipeline {
                     branch: 'main'
             }
         }
-
+        
         stage('Build') {
             steps {
                 echo 'Starting Maven Build'
                 sh 'mvn clean compile'
             }
         }
-
+        
         stage('Build and Unit Tests') {
             steps {
-                echo 'Running Unit Tests (excluding SecureConfigTest to avoid API_KEY errors)'
-                // Skip the failing SecureConfigTest class
-                sh 'mvn test -Dtest="*Test,!SecureConfigTest"'
+                echo 'Running Unit Tests with Coverage'
+                sh 'mvn test'
             }
         }
-
+        
         stage('SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube Analysis'
                 script {
-                    def scannerHome = tool 'SonarScanner' // Jenkins → Tools → SonarQube Scanner
-
+                    def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('My Sonar Server') {
                         sh """
-                          ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=devops-app \
-                          -Dsonar.projectName=devops-app \
-                          -Dsonar.sources=src/main/java \
-                          -Dsonar.tests=src/test/java \
-                          -Dsonar.java.binaries=target/classes
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=devops-app \
+                            -Dsonar.projectName=devops-app \
+                            -Dsonar.sources=src/main/java \
+                            -Dsonar.tests=src/test/java \
+                            -Dsonar.java.binaries=target/classes
                         """
                     }
                 }
             }
         }
-
+        
         stage('Quality Gate') {
             steps {
                 echo 'Waiting for SonarQube Quality Gate result...'
@@ -62,32 +59,33 @@ pipeline {
                 }
             }
         }
-
+        
         stage('Package') {
             steps {
-                echo 'Packaging Application (skip tests)'
+                echo 'Packaging Application'
                 sh 'mvn package -DskipTests'
             }
         }
-
-stage('Archive Artifacts') {
-    steps {
-        echo 'Archiving Build Artifacts and Test Results'
-        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-        junit 'target/surefire-reports/*.xml'
-        // Coverage report is already sent to SonarQube
-        echo 'Coverage report available in SonarQube dashboard'
+        
+        stage('Archive Artifacts') {
+            steps {
+                echo 'Archiving Build Artifacts and Test Results'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                junit 'target/surefire-reports/*.xml'
+                echo 'Coverage report available in SonarQube dashboard'
+            }
+        }
     }
-}
+    
     post {
         always {
             echo 'Pipeline finished.'
         }
         success {
-            echo 'Pipeline succeeded: Build, Tests, and Quality Gate passed.'
+            echo 'Pipeline succeeded! Code passed all quality gates and built successfully.'
         }
         failure {
-            echo 'Pipeline FAILED: Build error or Quality Gate FAILED.'
+            echo 'Pipeline Failed - Either build failed or Quality Gate was not met.'
         }
     }
 }
