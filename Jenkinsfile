@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'          // Must match Jenkins → Tools → Maven name
+        maven 'Maven'            // Jenkins → Tools → Maven name
     }
 
     options {
@@ -26,24 +26,34 @@ pipeline {
             }
         }
 
-	stage('SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool 'SonarScanner'
+        stage('SonarQube Analysis') {
+            steps {
+                echo 'Running SonarQube Analysis'
+                script {
+                    def scannerHome = tool 'SonarScanner'   // Jenkins → Tools → SonarQube Scanner
 
-            withSonarQubeEnv('My Sonar Server') {
-                sh """
-                  ${scannerHome}/bin/sonar-scanner \
-                  -Dsonar.projectKey=devops-app \
-                  -Dsonar.projectName=devops-app \
-                  -Dsonar.sources=src/main/java \
-                  -Dsonar.tests=src/test/java \
-                  -Dsonar.java.binaries=target/classes
-                """
+                    withSonarQubeEnv('My Sonar Server') {
+                        sh """
+                          ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=devops-app \
+                          -Dsonar.projectName=devops-app \
+                          -Dsonar.sources=src/main/java \
+                          -Dsonar.tests=src/test/java \
+                          -Dsonar.java.binaries=target/classes
+                        """
+                    }
+                }
             }
         }
-    }
-}
+
+        stage('Quality Gate') {
+            steps {
+                echo 'Waiting for SonarQube Quality Gate result...'
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
         stage('Unit Tests') {
             steps {
@@ -73,10 +83,10 @@ pipeline {
             echo 'Pipeline finished.'
         }
         success {
-            echo 'Pipeline succeeded! Build and SonarQube analysis completed.'
+            echo ' Pipeline succeeded: Quality Gate PASSED and build completed.'
         }
         failure {
-            echo 'Pipeline failed. Check logs for details.'
+            echo ' Pipeline FAILED: Build error or Quality Gate FAILED.'
         }
     }
 }
