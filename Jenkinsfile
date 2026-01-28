@@ -25,14 +25,19 @@ pipeline {
             }
         }
         
-        stage('SonarQube Analysis') {
-            steps {
-                echo 'Starting SonarQube Static Code Analysis'
-                withSonarQubeEnv('My Sonar Server') {
-                    sh 'mvn sonar:sonar'
-                }
-            }
+	stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('My Sonar Server') {
+            sh '''
+              sonar-scanner \
+              -Dsonar.projectKey=devops-app \
+              -Dsonar.projectName=devops-app \
+              -Dsonar.sources=src \
+              -Dsonar.java.binaries=target
+            '''
         }
+    }
+}
         
         stage('Unit Tests') {
             steps {
