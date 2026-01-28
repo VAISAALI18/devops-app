@@ -1,15 +1,16 @@
 pipeline {
     agent any
-    
+
     tools {
-        maven 'Maven' // Ensure Maven is configured in Global Tool Configuration
+        maven 'Maven'          // Must match Jenkins → Tools → Maven name
     }
-    
+
     options {
         skipDefaultCheckout()
     }
-    
+
     stages {
+
         stage('Checkout Source') {
             steps {
                 git url: 'git@github.com:VAISAALI18/devops-app.git',
@@ -17,42 +18,47 @@ pipeline {
                     branch: 'main'
             }
         }
-        
+
         stage('Build') {
             steps {
                 echo 'Starting Maven Build'
                 sh 'mvn clean compile'
             }
         }
-        
-	stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('My Sonar Server') {
-            sh '''
-              sonar-scanner \
-              -Dsonar.projectKey=devops-app \
-              -Dsonar.projectName=devops-app \
-              -Dsonar.sources=src \
-              -Dsonar.java.binaries=target
-            '''
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // SonarQube Scanner tool configured in Jenkins
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('My Sonar Server') {
+                        sh """
+                          ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=devops-app \
+                          -Dsonar.projectName=devops-app \
+                          -Dsonar.sources=src \
+                          -Dsonar.java.binaries=target
+                        """
+                    }
+                }
+            }
         }
-    }
-}
-        
+
         stage('Unit Tests') {
             steps {
                 echo 'Running Unit Tests'
                 sh 'mvn test'
             }
         }
-        
+
         stage('Package') {
             steps {
                 echo 'Packaging Application'
                 sh 'mvn package -DskipTests'
             }
         }
-        
+
         stage('Archive Artifacts') {
             steps {
                 echo 'Archiving Build Artifacts'
@@ -61,16 +67,16 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             echo 'Pipeline finished.'
         }
         success {
-            echo 'Pipeline succeeded! Code analyzed and built successfully.'
+            echo 'Pipeline succeeded! Build and SonarQube analysis completed.'
         }
         failure {
-            echo 'Pipeline Failed - Check logs for details.'
+            echo 'Pipeline failed. Check logs for details.'
         }
     }
 }
