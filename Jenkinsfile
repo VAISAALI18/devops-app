@@ -70,22 +70,15 @@ pipeline {
             }
         }
 
-        stage('Archive Artifacts') {
-            steps {
-                echo 'Archiving Build Artifacts and Test Results'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                junit 'target/surefire-reports/*.xml'
-                // Archive coverage report if available
-                publishHTML([
-                    reportDir: 'target/site/jacoco',
-                    reportFiles: 'index.html',
-                    reportName: 'JaCoCo Coverage Report',
-                    allowMissing: true
-                ])
-            }
-        }
+stage('Archive Artifacts') {
+    steps {
+        echo 'Archiving Build Artifacts and Test Results'
+        archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+        junit 'target/surefire-reports/*.xml'
+        // Coverage report is already sent to SonarQube
+        echo 'Coverage report available in SonarQube dashboard'
     }
-
+}
     post {
         always {
             echo 'Pipeline finished.'
