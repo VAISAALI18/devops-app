@@ -26,24 +26,24 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    // SonarQube Scanner tool configured in Jenkins
-                    def scannerHome = tool 'SonarScanner'
+	stage('SonarQube Analysis') {
+    steps {
+        script {
+            def scannerHome = tool 'SonarScanner'
 
-                    withSonarQubeEnv('My Sonar Server') {
-                        sh """
-                          ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=devops-app \
-                          -Dsonar.projectName=devops-app \
-                          -Dsonar.sources=src \
-                          -Dsonar.java.binaries=target
-                        """
-                    }
-                }
+            withSonarQubeEnv('My Sonar Server') {
+                sh """
+                  ${scannerHome}/bin/sonar-scanner \
+                  -Dsonar.projectKey=devops-app \
+                  -Dsonar.projectName=devops-app \
+                  -Dsonar.sources=src/main/java \
+                  -Dsonar.tests=src/test/java \
+                  -Dsonar.java.binaries=target/classes
+                """
             }
         }
+    }
+}
 
         stage('Unit Tests') {
             steps {
